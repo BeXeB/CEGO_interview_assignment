@@ -12,20 +12,39 @@ $dbname = "cego";
 try {
   $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
   $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  
-  $stmt = $conn->prepare("SELECT * FROM users");
+  $sql = "SELECT id, firstName, lastName, email FROM users WHERE firstName LIKE 'A%'";
+  $stmt = $conn->prepare($sql);
   $stmt->execute();
 
-  $result = $stmt->setFetchMode(PDO::FETCH_ASSOC);
+  $filename = 'test' . '.csv';
+
+  $data = fopen($filename, 'a');
+  $datarows = 0;
+  while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+	  $datarows++;
+      fputcsv($data, $row);
+  }
+  fclose($data);
   
-  $myfile = fopen("file.txt", "w");
-  
-  foreach($stmt->fetchAll() as $k => $v){
-	  foreach($v as $k => $a){
-		  $txt = $a . ",\t";
-		  fwrite($myfile, $txt);
-	  }
-	  fwrite($myfile, "\n");
+  if (file_exists($filename)) {
+    $filerows = 0;
+    $fp = fopen("test.csv","r");
+    if($fp){
+      while(!feof($fp)){
+        $content = fgets($fp);
+        if($content)    $filerows++;
+      }
+    }
+    fclose($fp);
+	if($datarows === $filerows){
+	  $sql = "DELETE FROM users WHERE firstName LIKE 'A%'";
+	  $conn->exec($sql);
+	  echo "record(s) deleted";
+	}else{
+		echo "file incomplete";
+	}
+  }else {
+	echo "file doesn't exist";
   }
   
 } catch(PDOException $e) {
